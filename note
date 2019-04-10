@@ -1,0 +1,83 @@
+rapidxml create Pascal xml
+void CAIExamDlg::create_xml(const SheetDetail & sheet_detail)
+{
+	rapidxml::xml_document<> doc;
+	rapidxml::xml_node<>* rot = doc.allocate_node(rapidxml::node_pi, doc.allocate_string("xml version='1.0' encoding='utf-8'"));
+	doc.append_node(rot);
+	// annotation 节点
+	rapidxml::xml_node<>* node = doc.allocate_node(rapidxml::node_element, "annotation", "information");
+	node->append_attribute(doc.allocate_attribute("verified", doc.allocate_string("no")));
+	doc.append_node(node);
+	// folder 节点
+	rapidxml::xml_node<>* node_folder = doc.allocate_node(rapidxml::node_element, "folder", doc.allocate_string(sheet_detail.str_dir_name.c_str()));
+	node->append_node(node_folder);
+	// filename 节点
+	rapidxml::xml_node<>* node_filename = doc.allocate_node(rapidxml::node_element, "filename", doc.allocate_string(sheet_detail.str_img_name.c_str()));
+	node->append_node(node_filename);
+	// path 节点
+	rapidxml::xml_node<>* node_path = doc.allocate_node(rapidxml::node_element, "path", doc.allocate_string(sheet_detail.str_img_path.c_str()));
+	node->append_node(node_path);
+	// source 节点
+	rapidxml::xml_node<>* node_source = doc.allocate_node(rapidxml::node_element, "source",NULL);
+	// source 子节点 database 节点
+	rapidxml::xml_node<>* node_database = doc.allocate_node(rapidxml::node_element, "database", "Unknown");
+	node_source->append_node(node_database);
+	node->append_node(node_source);
+
+	// size 节点
+	rapidxml::xml_node<>* node_size = doc.allocate_node(rapidxml::node_element, "size", NULL);
+	// size 子节点 width height depth 节点
+	rapidxml::xml_node<>* node_width = doc.allocate_node(rapidxml::node_element, "width", doc.allocate_string(to_string(sheet_detail.i_img_w).c_str()));
+	rapidxml::xml_node<>* node_height = doc.allocate_node(rapidxml::node_element, "height", doc.allocate_string(to_string(sheet_detail.i_img_h).c_str()));
+	rapidxml::xml_node<>* node_depth = doc.allocate_node(rapidxml::node_element, "depth", doc.allocate_string(to_string(sheet_detail.i_img_depth).c_str()));
+	node_size->append_node(node_width);
+	node_size->append_node(node_height);
+	node_size->append_node(node_depth);
+	node->append_node(node_size);
+
+	// segmented 节点
+	rapidxml::xml_node<>* node_segmented = doc.allocate_node(rapidxml::node_element, "segmented", "0");
+	node->append_node(node_segmented);
+	
+	// 循环 多个 object 节点
+	for (int i = 0; i < sheet_detail.vec_boundboxes.size(); i++) {
+		BoundingBox bbx = sheet_detail.vec_boundboxes[i];
+		rapidxml::xml_node<>* node_object = doc.allocate_node(rapidxml::node_element, "object", NULL);
+		// 子节点
+		rapidxml::xml_node<>* node_name = doc.allocate_node(rapidxml::node_element, "name", doc.allocate_string(bbx.str_class_name.c_str()));
+		rapidxml::xml_node<>* node_pos = doc.allocate_node(rapidxml::node_element, "pos", "Unspecified");
+		rapidxml::xml_node<>* node_truncated = doc.allocate_node(rapidxml::node_element, "truncated", "0");
+		rapidxml::xml_node<>* node_difficult = doc.allocate_node(rapidxml::node_element, "difficult", "0");
+		rapidxml::xml_node<>* node_score = doc.allocate_node(rapidxml::node_element, "score", doc.allocate_string(to_string(bbx.score).c_str()));
+		// bndbox 节点
+		rapidxml::xml_node<>* node_bndbox = doc.allocate_node(rapidxml::node_element, "bndbox", NULL);
+		rapidxml::xml_node<>* node_xmin = doc.allocate_node(rapidxml::node_element, "xmin", doc.allocate_string(to_string(bbx.x0).c_str()));
+		rapidxml::xml_node<>* node_ymin = doc.allocate_node(rapidxml::node_element, "ymin", doc.allocate_string(to_string(bbx.x1).c_str()));
+		rapidxml::xml_node<>* node_xmax = doc.allocate_node(rapidxml::node_element, "xmax", doc.allocate_string(to_string(bbx.y0).c_str()));
+		rapidxml::xml_node<>* node_ymax = doc.allocate_node(rapidxml::node_element, "ymax", doc.allocate_string(to_string(bbx.y1).c_str()));
+		node_bndbox->append_node(node_xmin);
+		node_bndbox->append_node(node_ymin);
+		node_bndbox->append_node(node_xmax);
+		node_bndbox->append_node(node_ymax);
+
+		// 加入 object 节点
+		node_object->append_node(node_name);
+		node_object->append_node(node_pos);
+		node_object->append_node(node_truncated);
+		node_object->append_node(node_difficult);
+		node_object->append_node(node_bndbox);
+		node_object->append_node(node_score);
+
+		// 加入根节点
+		node->append_node(node_object);
+		
+	}
+	
+	std::string text;
+	rapidxml::print(std::back_inserter(text), doc, 0);
+	std::cout << text << std::endl;
+	std::ofstream out(sheet_detail.str_xml_path);
+	out << doc;
+
+	return;
+}
