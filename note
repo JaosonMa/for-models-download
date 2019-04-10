@@ -81,3 +81,76 @@ void CAIExamDlg::create_xml(const SheetDetail & sheet_detail)
 
 	return;
 }
+// parse xml
+
+void CAIExamDlg::parse_xml(SheetDetail & sheet_detail)
+{
+	rapidxml::file<> fdoc(sheet_detail.str_xml_path.c_str());
+	rapidxml::xml_document<> doc;
+	doc.parse<0>(fdoc.data());
+	// 取得根节点
+	rapidxml::xml_node<> * node = doc.first_node();// annotation 节点不解析信息 忽略
+	// 取得 annotation 节点下面的子节点列表
+	node = node->first_node(); 
+	string node_name; node_name.clear();
+	string node_val; node_val.clear();
+	while (node) {
+		node_name = node->name();
+		if ("size" == node_name) {
+			rapidxml::xml_node<> * node_size = node->first_node();
+			while (node_size){
+				node_name = node_size->name();
+				if ("width" == node_name) {
+					sheet_detail.i_img_w = atoi(node_size->value());
+				}
+				else if ("height" == node_name) {
+					sheet_detail.i_img_h = atoi(node_size->value());
+				}
+				else if ("depth" == node_name) {
+					sheet_detail.i_img_depth = atoi(node_size->value());
+				}
+				else
+					;
+				node_size = node_size->next_sibling();
+			}
+		}
+		else if("object" == node_name){
+			BoundingBox bbx;
+			rapidxml::xml_node<> * node_obj = node->first_node();
+			while (node_obj) {
+				node_name = node_obj->name();
+				if ("name" == node_name) {
+					bbx.str_class_name = node_obj->value();
+				}
+				else if ("score" == node_name) {
+					bbx.score = atof(node_obj->value());
+				}
+				else if ("bndbox" == node_name) {
+					rapidxml::xml_node<> * node_rect = node_obj->first_node();
+					while (node_rect) {
+						node_name = node_rect->name();
+						if ("xmin" == node_name) {
+							bbx.x0 = atoi(node_rect->value());
+						}
+						else if ("ymin" == node_name) {
+							bbx.y0 = atoi(node_rect->value());
+						}
+						else if ("xmax" == node_name) {
+							bbx.x1 = atoi(node_rect->value());
+						}
+						else if ("ymax" == node_name) {
+							bbx.y1 = atoi(node_rect->value());
+						}
+						node_rect = node_rect->next_sibling();
+					}
+				}
+				else
+					;
+				node_obj = node_obj->next_sibling();
+			}
+			sheet_detail.vec_boundboxes.push_back(bbx);
+		}
+		node = node->next_sibling();
+	}
+}
+
